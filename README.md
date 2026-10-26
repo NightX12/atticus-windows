@@ -136,7 +136,7 @@ This version sends nothing. The daily anonymous user count and the opt-in failur
 
 - `win/Atticus/`: the app (hotkey, speech, overlay, setup and Settings windows, tray, updater), in C# with WebView2
 - `atticus.py`: the brain (fast commands, system prompt, safety checks), kept close to the Mac version so fixes carry over
-- `winctl.py`: Windows' hands (displays, windows, apps, clipboard and typing, screenshots, files, UI Automation)
+- `atticus_platform/`: the platform layer. `win32/` is Windows' hands (displays, windows, apps, clipboard and typing, screenshots, files, UI Automation; formerly `winctl.py`), `fake.py` a test backend, `base.py` the interfaces
 - `integrations/`: one file per service, plus `_custom.py` for the ones you add in Settings
 - `ui/ui.html`, `ui/onboarding.html`, `ui/settings.html`: the overlay, the welcome flow, and Settings
 - `ui/orbs.js`: the [thinking-orbs](https://github.com/Jakubantalik/thinking-orbs) engine (MIT, Jakub Antalik)
