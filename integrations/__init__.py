@@ -88,7 +88,7 @@ def _saved():
 
 def config(name, secrets=True):
     """Every field of one integration ({} if it was never set up)."""
-    import winctl
+    from atticus_platform import ctl as winctl
     mod, saved = modules().get(name), _saved().get(name)
     if not mod or not saved:
         return {}
@@ -102,7 +102,7 @@ def config(name, secrets=True):
 
 def configured():
     """Set up and usable: saved, not turned off, and holding at least one of its keys (an address alone is not enough)."""
-    import winctl
+    from atticus_platform import ctl as winctl
     saved, out = _saved(), []
     for n, mod in modules().items():
         if not saved.get(n) or not saved[n].get('enabled', True):
@@ -115,7 +115,7 @@ def configured():
 
 def setup(name, values):
     """values: {field: value}. Empty secret = keep the saved one."""
-    import winctl
+    from atticus_platform import ctl as winctl
     mod = modules().get(name)
     if not mod:
         return f'no integration called {name}. There are: ' + ', '.join(modules())
@@ -137,7 +137,7 @@ def setup(name, values):
 
 
 def remove(name):
-    import winctl
+    from atticus_platform import ctl as winctl
     mod, allc = modules().get(name), _saved()
     if mod:
         for k, _, secret in mod.FIELDS:

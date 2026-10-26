@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Atticus for Windows: a small PC helper run by Claude Haiku through the Claude Code CLI (your Claude plan). Idea from Caleb Writes Code's "Atticus";
-ported from SaarthurR/atticus-mac. winctl.py holds the Windows hands (windows, apps, clipboard, screenshots, files).
+ported from SaarthurR/atticus-mac. atticus_platform/ holds the Windows hands (formerly winctl.py) (windows, apps, clipboard, screenshots, files).
 
 Hold Ctrl+Alt+Space (Atticus.exe) -> talk -> let go. It answers questions (web, files, screen) and does
 tasks on the Mac. Output lines for the overlay: "· note", "▸ step", "✓ answer".
@@ -24,10 +24,8 @@ tasks on the Mac. Output lines for the overlay: "· note", "▸ step", "✓ answ
 Completed requests go to %APPDATA%/Atticus/log.jsonl with their cost (live actions are marked).
 """
 import atexit, base64, html, json, platform, shlex, shutil, threading, os, re, signal, subprocess, sys, tempfile, time, urllib.parse, urllib.request
-try:
-    import winctl
-except ImportError:   # tests and syntax checks on other systems
-    winctl = None
+import atticus_platform as plat
+winctl = plat.ctl   # the platform's hands (win32 on Windows, fake elsewhere); winctl's names, see atticus_platform/
 import integrations
 
 os.environ.setdefault('PYTHONUTF8', '1')   # helpers and hooks started from here read and write UTF-8
@@ -51,9 +49,7 @@ ME = 'atticus'   # the AI's helper commands: a tiny script on the AI's PATH that
 PLACE, LOOK, SEARCH, READ, SHOW, REMEMBER, FORGET, TYPE, PLAY, ABOUT, SHORTCUT, FRONT, WATCH, PICK, SET, HISTORY = (ME + f' --{c}' for c in ('place', 'look', 'search', 'read', 'show', 'remember', 'forget', 'type', 'play', 'me add', 'shortcut', 'front', 'watch', 'pick', 'set', 'history'))
 MEMORY, RECENT = os.path.join(DIR, 'memory.md'), os.path.join(DIR, 'recent.jsonl')
 PREFS = os.path.join(DIR, 'settings.json')   # written by the Settings window
-if winctl:
-    winctl.APPS_FILE = os.path.join(DIR, 'apps.json')
-    winctl.UI_FILE = os.path.join(DIR, 'ui.json')
+plat.configure(DIR)   # apps.json, ui.json
 integrations.CONFIG = os.path.join(DIR, 'integrations.json')
 # $5 once, sold on Gumroad. shortcut: the source is public, so a coder can delete this check; fine for a $5 app.
 GUMROAD_PRODUCT = ''   # Gumroad product ID; empty = free
