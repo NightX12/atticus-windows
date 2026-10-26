@@ -53,6 +53,7 @@ Copy-Item "$out\*" $dest -Recurse -Force
 Remove-Item $out -Recurse -Force
 Copy-Item atticus.py $dest -Force
 Copy-Item atticus_platform $dest -Recurse -Force -Exclude __pycache__
+Copy-Item atticus_core $dest -Recurse -Force -Exclude __pycache__
 New-Item -ItemType Directory -Force "$dest\integrations" | Out-Null
 Copy-Item integrations\*.py "$dest\integrations" -Force
 Copy-Item ui\*.html, ui\*.js, ui\AppIcon.ico, ui\AppIcon.png "$dest\ui" -Force
