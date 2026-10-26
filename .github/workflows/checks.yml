@@ -2,6 +2,12 @@ name: Checks
 on: [push, pull_request, workflow_dispatch]
 permissions:
   contents: read
+defaults:
+  run:
+    shell: pwsh
+# pwsh ignores a failing native command unless told; without this a red unittest still gave a green job
+env:
+  PSNATIVECOMMANDUSEERRORACTIONPREFERENCE: 'true'
 jobs:
   regressions:
     runs-on: windows-latest
@@ -17,11 +23,13 @@ jobs:
         env:
           PYTHONUTF8: '1'
         run: |
+          $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true
           python -m pip install -r requirements.txt
           python -m unittest discover -s tests -v
           python atticus.py --selftest
       - name: App builds and passes its selftest
         run: |
+          $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true
           dotnet build win/Atticus -c Release -o out
           out/Atticus.exe --selftest
       - name: Installer syntax
