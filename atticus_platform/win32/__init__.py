@@ -10,5 +10,10 @@ for _m in _MODULES:
     for _n, _v in vars(_m).items():
         if not _n.startswith('__') and not isinstance(_v, type(_core)):
             globals().setdefault(_n, _v)
-del _m, _n, _v
+for _n, _v in list(globals().items()):   # a function named like its module (apps.apps) wins over the submodule
+    if isinstance(_v, type(_core)) and _v in _MODULES:
+        _f = next((vars(_m)[_n] for _m in _MODULES if not isinstance(vars(_m).get(_n, _core), type(_core))), None)
+        if _f is not None:
+            globals()[_n] = _f
+del _m, _n, _v, _f
 NAME = 'win32'
