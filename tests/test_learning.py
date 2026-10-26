@@ -125,7 +125,8 @@ class LearningTests(unittest.TestCase):
         windir = os.environ.get('SystemRoot', r'C:\Windows')
         self.assertFalse(atticus.console_exe(os.path.join(windir, 'notepad.exe')))   # GUI: --help would open it
         self.assertTrue(atticus.console_exe(os.path.join(windir, 'System32', 'where.exe')))
-        with patch.object(atticus.subprocess, 'run') as run:
+        only_windows = os.pathsep.join([os.path.join(windir, 'System32'), windir])   # runner images put Git/msys tools named open/run on PATH
+        with patch.object(atticus.subprocess, 'run') as run, patch.dict(os.environ, {'PATH': only_windows}):
             self.assertEqual(atticus.tool_help('open notepad and run where'), '')   # Windows' own folder
         run.assert_not_called()
 

@@ -10,6 +10,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import atticus_platform as plat
 from atticus_platform import base, fake, pure
 
+F = type('FakeGroups', (), base.grouped(fake))   # always the fake backend, also on Windows CI
+
+CALLABLE = ['apps', 'windows', 'joplin']   # same names as their win32 submodules
 WINCTL_NAMES = ['_all', '_find_item', '_find_items', '_joplin_settings', '_open_clip', '_panels', '_press', '_rid', '_titles', '_walk', 'apps',
                 'ask_text', 'ask_yes', 'bash', 'bring', 'browser_url', 'capture', 'choose', 'cloaked', 'close', 'describe_exe', 'exe_of', 'find',
                 'find_files', 'focus_app', 'frame', 'front', 'get_clip', 'hotkey', 'joplin', 'joplin_cmd', 'joplin_note', 'joplin_notebook', 'key',
@@ -41,7 +44,7 @@ class PlatformTests(unittest.TestCase):
         code = ('import sys, ctypes, json\n'
                 + ("" if sys.platform == 'win32' else 'from unittest import mock\nsys.platform = "win32"; ctypes.WinDLL = mock.MagicMock()\n')
                 + 'import atticus_platform.win32 as w\n'
-                f'print(json.dumps([n for n in {WINCTL_NAMES!r} if not hasattr(w, n)]))\n')
+                f'print(json.dumps([n for n in {WINCTL_NAMES!r} if not hasattr(w, n)] + [n for n in {CALLABLE!r} if not callable(getattr(w, n))]))\n')
         r = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True, cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(r.stdout.strip(), '[]')
@@ -56,31 +59,31 @@ class PlatformTests(unittest.TestCase):
     def test_fake_windows_find_focus_and_front(self):
         fake.WINDOWS.extend([{'hwnd': 1, 'title': 'notes.txt - Notepad', 'exe': 'notepad.exe', 'proc': 'notepad', 'app': 'Notepad'},
                              {'hwnd': 2, 'title': 'Inbox - Google Chrome', 'exe': 'chrome.exe', 'proc': 'chrome', 'app': 'Google Chrome'}])
-        self.assertEqual([w['hwnd'] for w in plat.windows.find('chrome')], [2])
-        self.assertTrue(plat.apps.focus('Google Chrome', 'inbox'))
-        self.assertEqual(plat.windows.front()[2], 2)
-        self.assertFalse(plat.apps.focus('Spotify'))
-        self.assertEqual(plat.windows.place('Notepad', 'middle'), 'where must be left, right, full or center')
+        self.assertEqual([w['hwnd'] for w in F.windows.find('chrome')], [2])
+        self.assertTrue(F.apps.focus('Google Chrome', 'inbox'))
+        self.assertEqual(F.windows.front()[2], 2)
+        self.assertFalse(F.apps.focus('Spotify'))
+        self.assertEqual(F.windows.place('Notepad', 'middle'), 'where must be left, right, full or center')
 
     def test_fake_clipboard_and_secrets(self):
-        plat.clipboard.set('hello')
-        self.assertEqual(plat.clipboard.get(), 'hello')
-        self.assertTrue(plat.secrets.set('jellyfin/key', 's3cret'))
-        self.assertEqual(plat.secrets.get('jellyfin/key'), 's3cret')
-        self.assertTrue(plat.secrets.set('jellyfin/key', ''))
-        self.assertEqual(plat.secrets.get('jellyfin/key'), '')
+        F.clipboard.set('hello')
+        self.assertEqual(F.clipboard.get(), 'hello')
+        self.assertTrue(F.secrets.set('jellyfin/key', 's3cret'))
+        self.assertEqual(F.secrets.get('jellyfin/key'), 's3cret')
+        self.assertTrue(F.secrets.set('jellyfin/key', ''))
+        self.assertEqual(F.secrets.get('jellyfin/key'), '')
 
     def test_rect_for_and_key_are_shared(self):
         self.assertIs(fake.rect_for, pure.rect_for)
         self.assertEqual(pure.key('Code.exe'), 'code')
-        self.assertEqual(plat.windows.rect_for('right', (0, 0, 1001, 800), (10, 10)), (500, 0, 501, 800))
+        self.assertEqual(F.windows.rect_for('right', (0, 0, 1001, 800), (10, 10)), (500, 0, 501, 800))
 
     def test_ui_item_reads_the_last_look(self):
         with tempfile.TemporaryDirectory() as d:
             plat.configure(d)
             open(plat.paths.UI_FILE, 'w').write('{"items": {"B1": {"name": "Send", "type": "Button"}, "X1": {"name": "Send", "type": "Text"}}}')
-            self.assertEqual(plat.ctl.ui_item('send')['type'], 'Button')
-            self.assertIsNone(plat.ctl.ui_item('nothing'))
+            self.assertEqual(fake.ui_item('send')['type'], 'Button')
+            self.assertIsNone(fake.ui_item('nothing'))
 
     @unittest.skipIf(sys.platform == 'win32', 'the fake backend kills with POSIX signals')
     def test_fake_kill_tree_stops_children(self):
