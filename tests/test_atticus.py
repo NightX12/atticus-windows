@@ -15,6 +15,8 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import atticus
 
+WINDOWS_ONLY = unittest.skipUnless(sys.platform == 'win32', 'runs a .cmd file or real Windows API: Windows CI only')
+
 
 class BrainTests(unittest.TestCase):
     def setUp(self):
@@ -232,6 +234,8 @@ atticus.main()
                 if p.poll() is None:
                     p.terminate(); p.wait(timeout=3)
 
+    @WINDOWS_ONLY
+
     def test_cli_stderr_cannot_block_the_stream(self):
         with tempfile.TemporaryDirectory() as root:
             script = Path(root) / 'claude.py'
@@ -273,6 +277,8 @@ class WatchAndBudgetTests(unittest.TestCase):
         self.assertEqual(len(self.notes), 1)
         self.assertIn('done', self.notes[0])
 
+    @WINDOWS_ONLY
+
     def test_phrase_gone_fires_and_present_waits(self):
         with self.fake_app('All set. Ready for the next task'):
             atticus.watch('', '', 'Orca', '', 'gone', 'esc to  interrupt')
@@ -280,6 +286,8 @@ class WatchAndBudgetTests(unittest.TestCase):
         with self.fake_app('Working (12s - esc to interrupt)'), patch.object(atticus.time, 'time', side_effect=[0, 0, 1, 2, 1e9]):
             atticus.watch('', '', 'Orca', '', 'gone', 'esc to interrupt')
         self.assertIn('3 hours', self.notes[-1])
+
+    @WINDOWS_ONLY
 
     def test_unreadable_window_stops_with_a_reason(self):
         with self.fake_app('', 1):
@@ -297,10 +305,10 @@ class WatchAndBudgetTests(unittest.TestCase):
         self.assertFalse(atticus.risky(f'{atticus.PICK} "Which file?" "~/delete-me.txt" "~/send.pdf"'))
 
     def test_clicks_are_as_risky_as_the_button_name(self):
-        with tempfile.TemporaryDirectory() as root, patch.object(atticus.winctl, 'UI_FILE', os.path.join(root, 'ui.json')):
+        with tempfile.TemporaryDirectory() as root, patch.object(atticus.plat.paths, 'UI_FILE', os.path.join(root, 'ui.json')):
             items = {'B1': {'name': 'Bold', 'type': 'Button', 'rid': [], 'rect': [0, 0, 1, 1]},
                      'B2': {'name': 'Send now', 'type': 'Button', 'rid': [], 'rect': [0, 0, 1, 1]}}
-            json.dump({'hwnd': 0, 'items': items}, open(atticus.winctl.UI_FILE, 'w'))
+            json.dump({'hwnd': 0, 'items': items}, open(atticus.plat.paths.UI_FILE, 'w'))
             self.assertEqual(atticus.risky(f'{atticus.UI} click B1'), '')
             self.assertEqual(atticus.risky(f'{atticus.UI} click B1 "Send now"'), 'Click "Send now"?')   # by name, in a batch
             self.assertEqual(atticus.risky(f'{atticus.UI} click B2'), 'Click "Send now"?')
@@ -315,6 +323,8 @@ class WatchAndBudgetTests(unittest.TestCase):
                 atticus.typing_save(part)
             self.assertEqual(atticus.risky(f'{K} Discord enter'), 'Send this?')
 
+    @WINDOWS_ONLY
+
     def test_joplin_new_note_goes_in_the_named_notebook(self):
         calls = []
         def api(method, path, body=None, **q):
@@ -322,7 +332,8 @@ class WatchAndBudgetTests(unittest.TestCase):
             if path == 'folders':
                 return {'items': [{'id': 'f1', 'title': 'Work Notes'}], 'has_more': False}
             return {'id': 'n1', 'title': body['title']}
-        with patch.object(atticus.winctl, 'joplin', side_effect=api):
+        from atticus_platform.win32 import joplin as jmod   # joplin_cmd calls joplin() in its own module
+        with patch.object(jmod, 'joplin', side_effect=api):
             self.assertIn('created note "Plan"', atticus.winctl.joplin_cmd(['new', 'Plan', 'step one', '--in', 'work']))
             self.assertEqual(calls[-1], ('POST', 'notes', {'title': 'Plan', 'body': 'step one', 'parent_id': 'f1'}))
             self.assertIn('Notebooks: Work Notes', atticus.winctl.joplin_cmd(['new', 'Plan', 'x', '--in', 'Recipes']))   # never a guess
