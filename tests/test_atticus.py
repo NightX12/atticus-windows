@@ -332,7 +332,7 @@ class WatchAndBudgetTests(unittest.TestCase):
             if path == 'folders':
                 return {'items': [{'id': 'f1', 'title': 'Work Notes'}], 'has_more': False}
             return {'id': 'n1', 'title': body['title']}
-        from atticus_platform.win32 import joplin as jmod   # joplin_cmd calls joplin() in its own module
+        import importlib; jmod = importlib.import_module('atticus_platform.win32.joplin')   # the module, not ctl.joplin; joplin_cmd calls joplin() in its own module
         with patch.object(jmod, 'joplin', side_effect=api):
             self.assertIn('created note "Plan"', atticus.winctl.joplin_cmd(['new', 'Plan', 'step one', '--in', 'work']))
             self.assertEqual(calls[-1], ('POST', 'notes', {'title': 'Plan', 'body': 'step one', 'parent_id': 'f1'}))
